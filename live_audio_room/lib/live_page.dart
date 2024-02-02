@@ -26,6 +26,7 @@ class LivePage extends StatefulWidget {
 }
 
 class LivePageState extends State<LivePage> {
+  bool isExpansion = false;
   @override
   Widget build(BuildContext context) {
     return ZegoUIKitPrebuiltLiveAudioRoom(
@@ -53,7 +54,6 @@ class LivePageState extends State<LivePage> {
       ..foreground = foreground()
       ..inRoomMessage = ZegoLiveAudioRoomInRoomMessageConfig(visible: false)
       ..userAvatarUrl = 'https://robohash.org/$localUserID.png'
-      
       ..bottomMenuBar = ZegoLiveAudioRoomBottomMenuBarConfig(
         maxCount: 3,
         hostButtons: [
@@ -135,95 +135,173 @@ class LivePageState extends State<LivePage> {
     return Align(
       alignment: AlignmentDirectional.bottomCenter,
       child: Stack(
-        
         children: [
           Container(
-            margin: EdgeInsets.only(bottom: kBottomNavigationBarHeight,),
-            height: MediaQuery.of(context).size.height * .7, color: Colors.blueAccent,),
+            margin: const EdgeInsets.only(
+              bottom: kBottomNavigationBarHeight,
+            ),
+            height: MediaQuery.of(context).size.height * .7,
+            color: Colors.blueAccent,
+            child: Container(),
+          ),
           Positioned(
             bottom: kBottomNavigationBarHeight,
-            child: StreamBuilder<List<ZegoInRoomMessage>>(
-              stream: ZegoUIKitPrebuiltLiveAudioRoomController().message.stream(),
-              builder: (context, snapshot) {
-                final messages = (snapshot.data ?? <ZegoInRoomMessage>[]).reversed.toList();
-                return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  width: MediaQuery.of(context).size.width,
-                  constraints: const BoxConstraints(maxHeight: 160),
-                  decoration: const BoxDecoration(color: Colors.black26),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Align(
-                          alignment: Alignment.centerRight,
-                          child: GestureDetector(
-                            onTap: () {},
-                            child: const Icon(
-                              Icons.arrow_drop_down,
-                              size: 30,
-                              color: Colors.white,
-                            ),
-                          )),
-                      Flexible(
-                        child: ListView.separated(
-                          padding: EdgeInsets.only(bottom: 15),
-                          shrinkWrap: true,
-                          reverse: true,
-                          itemCount: messages.length,
-                          itemBuilder: (context, index) {
-                            final message = messages[index];
-                            return Row(
-                              crossAxisAlignment: CrossAxisAlignment.center,
+            child: Container(
+              height: 40,
+              width: MediaQuery.of(context).size.width,
+              color: Color(0xff201f25),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: StreamBuilder<List<ZegoInRoomMessage>>(
+                    stream: ZegoUIKitPrebuiltLiveAudioRoomController()
+                        .message
+                        .stream(),
+                    builder: (context, snapshot) {
+                      final messages = (snapshot.data ?? <ZegoInRoomMessage>[])
+                          .reversed
+                          .toList();
+                      final messageNew =
+                          messages.isNotEmpty ? messages.first : null;
+                      return Visibility(
+                        visible: isExpansion == false,
+                        child: GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              isExpansion = !isExpansion;
+                            });
+                          },
+                          child: Container(
+                            margin: const EdgeInsets.fromLTRB(12, 5, 16, 5),
+                            padding: const EdgeInsets.fromLTRB(6, 5, 16, 5),
+                            decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(6),
+                                color: Color(0xff5F5B76).withOpacity(.8)),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
-                                const CircleAvatar(
-                                  radius: 17,
-                                  foregroundImage: NetworkImage(
-                                      'https://res.cloudinary.com/dsqpl191o/image/upload/public/645/33b/4dc/64533b4dca2ee309819173.jpg'),
+                                Text(
+                                  '${messageNew != null ? messageNew.user.name : ''}',
+                                  style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold),
                                 ),
                                 const SizedBox(
                                   width: 8,
                                 ),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          Text(
-                                            message.user.name,
-                                            style: TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 14,
-                                                fontWeight: FontWeight.bold),
-                                          ),
-                                          const SizedBox(
-                                            width: 6,
-                                          ),
-                                          Icon(
-                                            Icons.android,
-                                            color: Colors.white,
-                                          ),
-                                        ],
-                                      ),
-                                      Text(
-                                        message.message,
-                                        style: TextStyle(
-                                            color: Colors.white, fontSize: 12),
-                                      )
-                                    ],
-                                  ),
-                                )
+                                Flexible(
+                                    child: Text(
+                                  '${messageNew != null ? messageNew.message : ''}',
+                                  style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.normal),
+                                )),
                               ],
-                            );
-                          },
-                          separatorBuilder: (BuildContext context, int index) {
-                            return const SizedBox(
-                              height: 10,
-                            );
-                          },
+                            ),
+                          ),
                         ),
-                      ),
-                    ],
+                      );
+                    }),
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: kBottomNavigationBarHeight,
+            child: StreamBuilder<List<ZegoInRoomMessage>>(
+              stream:
+                  ZegoUIKitPrebuiltLiveAudioRoomController().message.stream(),
+              builder: (context, snapshot) {
+                final messages =
+                    (snapshot.data ?? <ZegoInRoomMessage>[]).reversed.toList();
+                return Visibility(
+                  visible: isExpansion,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    width: MediaQuery.of(context).size.width,
+                    constraints: const BoxConstraints(maxHeight: 160),
+                    decoration: const BoxDecoration(color: Colors.black26),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Align(
+                            alignment: Alignment.centerRight,
+                            child: GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  isExpansion = !isExpansion;
+                                });
+                              },
+                              child: const Icon(
+                                Icons.arrow_drop_down,
+                                size: 30,
+                                color: Colors.white,
+                              ),
+                            )),
+                        Flexible(
+                          child: ListView.separated(
+                            padding: EdgeInsets.only(bottom: 15),
+                            shrinkWrap: true,
+                            reverse: true,
+                            itemCount: messages.length,
+                            itemBuilder: (context, index) {
+                              final message = messages[index];
+                              return Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  const CircleAvatar(
+                                    radius: 17,
+                                    foregroundImage: NetworkImage(
+                                        'https://res.cloudinary.com/dsqpl191o/image/upload/public/645/33b/4dc/64533b4dca2ee309819173.jpg'),
+                                  ),
+                                  const SizedBox(
+                                    width: 8,
+                                  ),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Text(
+                                              message.user.name,
+                                              style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.bold),
+                                            ),
+                                            const SizedBox(
+                                              width: 6,
+                                            ),
+                                            Icon(
+                                              Icons.android,
+                                              color: Colors.white,
+                                            ),
+                                          ],
+                                        ),
+                                        Text(
+                                          message.message,
+                                          style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 12),
+                                        )
+                                      ],
+                                    ),
+                                  )
+                                ],
+                              );
+                            },
+                            separatorBuilder:
+                                (BuildContext context, int index) {
+                              return const SizedBox(
+                                height: 10,
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 );
               },
@@ -238,7 +316,6 @@ class LivePageState extends State<LivePage> {
     /// how to replace background view
     return Stack(
       children: [
-        
         Container(
           decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -248,15 +325,19 @@ class LivePageState extends State<LivePage> {
                   colors: [Color(0xff30295D), Color(0xff14131A)])),
         ),
         Container(
-                width: MediaQuery.of(context).size.width,
-                decoration: BoxDecoration(color: Colors.white.withOpacity(.05)),),
+          width: MediaQuery.of(context).size.width,
+          decoration: BoxDecoration(color: Colors.white.withOpacity(.05)),
+        ),
         Container(
-          height: kToolbarHeight+ MediaQuery.of(context).viewPadding.top,
-width: MediaQuery.of(context).size.width,
+          height: kToolbarHeight + MediaQuery.of(context).viewPadding.top,
+          width: MediaQuery.of(context).size.width,
           decoration: BoxDecoration(
-            
-            image: DecorationImage(opacity: .5, fit: BoxFit.cover,image: NetworkImage('https://sudokuplus.h5games.usercontent.goog/v/40a906fb-b228-42d0-8f9e-2a044bc9b19e/high_res_banner.jpg')),
-              ),
+            image: DecorationImage(
+                opacity: .5,
+                fit: BoxFit.cover,
+                image: NetworkImage(
+                    'https://sudokuplus.h5games.usercontent.goog/v/40a906fb-b228-42d0-8f9e-2a044bc9b19e/high_res_banner.jpg')),
+          ),
         ),
         Positioned(
             top: MediaQuery.of(context).viewPadding.top + 10,
@@ -353,11 +434,11 @@ width: MediaQuery.of(context).size.width,
     return ZegoLiveAudioRoomSeatConfig(
       // openIcon: Image.network('https://res.cloudinary.com/dsqpl191o/image/upload/public/645/33b/4dc/64533b4dca2ee309819173.jpg'),
       closeWhenJoining: false,
-        avatarBuilder: avatarBuilder,
-        // backgroundBuilder: (context, size, user, extraInfo) {
-        //   return SizedBox(height: 30, width: 30,);
-        // },
-        );
+      avatarBuilder: avatarBuilder,
+      // backgroundBuilder: (context, size, user, extraInfo) {
+      //   return SizedBox(height: 30, width: 30,);
+      // },
+    );
   }
 
   Widget avatarBuilder(
