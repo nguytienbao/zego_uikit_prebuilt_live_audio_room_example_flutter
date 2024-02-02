@@ -38,6 +38,7 @@ class MyAppState extends State<MyApp> {
       title: 'Flutter Demo',
       home: HomePage(),
       navigatorKey: widget.navigatorKey,
+      debugShowCheckedModeBanner: false,
       builder: (BuildContext context, Widget? child) {
         return Stack(
           children: [

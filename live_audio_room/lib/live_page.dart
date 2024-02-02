@@ -17,7 +17,7 @@ class LivePage extends StatefulWidget {
   const LivePage({
     Key? key,
     required this.roomID,
-    this.layoutMode = LayoutMode.defaultLayout,
+    this.layoutMode = LayoutMode.horizontal,
     this.isHost = false,
   }) : super(key: key);
 
@@ -28,16 +28,15 @@ class LivePage extends StatefulWidget {
 class LivePageState extends State<LivePage> {
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: ZegoUIKitPrebuiltLiveAudioRoom(
-        appID: yourAppID /*input your AppID*/,
-        appSign: yourAppSign /*input your AppSign*/,
-        userID: localUserID,
-        userName: 'user_$localUserID',
-        roomID: widget.roomID,
-        events: events,
-        config: config,
-      ),
+    return ZegoUIKitPrebuiltLiveAudioRoom(
+      appID: 1985552479 /*input your AppID*/,
+      appSign:
+          'fcdacabe18cfa300b2b5dbef4ed31f4a9608cebd7d6b651971a1c09400ca8d4e' /*input your AppSign*/,
+      userID: localUserID,
+      userName: 'user_$localUserID',
+      roomID: widget.roomID,
+      events: events,
+      config: config,
     );
   }
 
@@ -45,16 +44,27 @@ class LivePageState extends State<LivePage> {
     return (widget.isHost
         ? ZegoUIKitPrebuiltLiveAudioRoomConfig.host()
         : ZegoUIKitPrebuiltLiveAudioRoomConfig.audience())
+      ..duration = ZegoLiveAudioRoomLiveDurationConfig(isVisible: false)
       ..seat = (getSeatConfig()
         ..takeIndexWhenJoining = widget.isHost ? getHostSeatIndex() : -1
         ..hostIndexes = getLockSeatIndex()
         ..layout = getLayoutConfig())
       ..background = background()
       ..foreground = foreground()
-      ..topMenuBar.buttons = [
-        ZegoLiveAudioRoomMenuBarButtonName.minimizingButton
-      ]
-      ..userAvatarUrl = 'https://robohash.org/$localUserID.png';
+      ..inRoomMessage = ZegoLiveAudioRoomInRoomMessageConfig(visible: false)
+      ..userAvatarUrl = 'https://robohash.org/$localUserID.png'
+      
+      ..bottomMenuBar = ZegoLiveAudioRoomBottomMenuBarConfig(
+        maxCount: 3,
+        hostButtons: [
+          ZegoLiveAudioRoomMenuBarButtonName.toggleMicrophoneButton,
+          ZegoLiveAudioRoomMenuBarButtonName.showMemberListButton,
+        ],
+        speakerButtons: [
+          ZegoLiveAudioRoomMenuBarButtonName.toggleMicrophoneButton,
+          ZegoLiveAudioRoomMenuBarButtonName.applyToTakeSeatButton,
+        ],
+      );
   }
 
   ZegoUIKitPrebuiltLiveAudioRoomEvents get events {
@@ -122,19 +132,105 @@ class LivePageState extends State<LivePage> {
   }
 
   Widget foreground() {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return Container();
-
-        return simpleMediaPlayer(
-          canControl: widget.isHost,
-        );
-
-        return advanceMediaPlayer(
-          constraints: constraints,
-          canControl: widget.isHost,
-        );
-      },
+    return Align(
+      alignment: AlignmentDirectional.bottomCenter,
+      child: Stack(
+        
+        children: [
+          Container(
+            margin: EdgeInsets.only(bottom: kBottomNavigationBarHeight,),
+            height: MediaQuery.of(context).size.height * .7, color: Colors.blueAccent,),
+          Positioned(
+            bottom: kBottomNavigationBarHeight,
+            child: StreamBuilder<List<ZegoInRoomMessage>>(
+              stream: ZegoUIKitPrebuiltLiveAudioRoomController().message.stream(),
+              builder: (context, snapshot) {
+                final messages = (snapshot.data ?? <ZegoInRoomMessage>[]).reversed.toList();
+                return Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  width: MediaQuery.of(context).size.width,
+                  constraints: const BoxConstraints(maxHeight: 160),
+                  decoration: const BoxDecoration(color: Colors.black26),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Align(
+                          alignment: Alignment.centerRight,
+                          child: GestureDetector(
+                            onTap: () {},
+                            child: const Icon(
+                              Icons.arrow_drop_down,
+                              size: 30,
+                              color: Colors.white,
+                            ),
+                          )),
+                      Flexible(
+                        child: ListView.separated(
+                          padding: EdgeInsets.only(bottom: 15),
+                          shrinkWrap: true,
+                          reverse: true,
+                          itemCount: messages.length,
+                          itemBuilder: (context, index) {
+                            final message = messages[index];
+                            return Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                const CircleAvatar(
+                                  radius: 17,
+                                  foregroundImage: NetworkImage(
+                                      'https://res.cloudinary.com/dsqpl191o/image/upload/public/645/33b/4dc/64533b4dca2ee309819173.jpg'),
+                                ),
+                                const SizedBox(
+                                  width: 8,
+                                ),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Text(
+                                            message.user.name,
+                                            style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.bold),
+                                          ),
+                                          const SizedBox(
+                                            width: 6,
+                                          ),
+                                          Icon(
+                                            Icons.android,
+                                            color: Colors.white,
+                                          ),
+                                        ],
+                                      ),
+                                      Text(
+                                        message.message,
+                                        style: TextStyle(
+                                            color: Colors.white, fontSize: 12),
+                                      )
+                                    ],
+                                  ),
+                                )
+                              ],
+                            );
+                          },
+                          separatorBuilder: (BuildContext context, int index) {
+                            return const SizedBox(
+                              height: 10,
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -142,59 +238,125 @@ class LivePageState extends State<LivePage> {
     /// how to replace background view
     return Stack(
       children: [
+        
         Container(
           decoration: BoxDecoration(
-            image: DecorationImage(
-              fit: BoxFit.fill,
-              image: Image.asset('assets/images/background.png').image,
-            ),
-          ),
+              gradient: LinearGradient(
+                  begin: Alignment.topRight,
+                  end: Alignment.bottomLeft,
+                  stops: [.1, .5],
+                  colors: [Color(0xff30295D), Color(0xff14131A)])),
         ),
-        const Positioned(
-            top: 10,
-            left: 10,
-            child: Text(
-              'Live Audio Room',
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: Color(0xff1B1B1B),
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
+        Container(
+                width: MediaQuery.of(context).size.width,
+                decoration: BoxDecoration(color: Colors.white.withOpacity(.05)),),
+        Container(
+          height: kToolbarHeight+ MediaQuery.of(context).viewPadding.top,
+width: MediaQuery.of(context).size.width,
+          decoration: BoxDecoration(
+            
+            image: DecorationImage(opacity: .5, fit: BoxFit.cover,image: NetworkImage('https://sudokuplus.h5games.usercontent.goog/v/40a906fb-b228-42d0-8f9e-2a044bc9b19e/high_res_banner.jpg')),
+              ),
+        ),
+        Positioned(
+            top: MediaQuery.of(context).viewPadding.top + 10,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: Text(
+                'Game ${widget.roomID}',
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             )),
         Positioned(
-          top: 10 + 20,
+          top: MediaQuery.of(context).viewPadding.top + 10,
           left: 10,
-          child: Text(
-            'ID: ${widget.roomID}',
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: Color(0xff606060),
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(10, 4, 10, 4),
+            decoration: BoxDecoration(
+                borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(6),
+                    topRight: Radius.circular(6),
+                    bottomLeft: Radius.circular(6)),
+                gradient: LinearGradient(
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                    colors: [Color(0xff2181C7), Color(0xff5F3AF6)])),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('1.01k',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                    )),
+                const SizedBox(
+                  width: 5,
+                ),
+                Icon(
+                  Icons.remove_red_eye,
+                  size: 14,
+                  color: Colors.white,
+                ),
+              ],
             ),
+          ),
+        ),
+        Positioned(
+          top: MediaQuery.of(context).viewPadding.top + 10,
+          right: 10,
+          child: GestureDetector(
+            onTap: () =>
+                ZegoUIKitPrebuiltLiveAudioRoomController().leave(context),
+            child: Container(
+                height: 25,
+                width: 25,
+                decoration: const BoxDecoration(
+                    color: Colors.white54, shape: BoxShape.circle),
+                child: const Center(
+                  child: Icon(
+                    Icons.close,
+                    size: 18,
+                    color: Colors.white,
+                  ),
+                )),
           ),
         )
       ],
     );
   }
 
+// await ZegoUIKit().leaveRoom();
   ZegoLiveAudioRoomSeatConfig getSeatConfig() {
-    if (widget.layoutMode == LayoutMode.hostTopCenter) {
-      return ZegoLiveAudioRoomSeatConfig(
-        backgroundBuilder: (
-          BuildContext context,
-          Size size,
-          ZegoUIKitUser? user,
-          Map<String, dynamic> extraInfo,
-        ) {
-          return Container(color: Colors.grey);
-        },
-      );
-    }
-
+    // if (widget.layoutMode == LayoutMode.horizontal) {
+    // return ZegoLiveAudioRoomSeatConfig(
+    //   avatarBuilder: (context, size, user, extraInfo) {
+    //     return Container(color: Colors.green, height: 30, width: 30,);
+    //   },
+    //   foregroundBuilder: (context, size, user, extraInfo) {
+    //     return Container(color: Colors.transparent, height: 30, width: 30,);
+    //   },
+    //   backgroundBuilder: (
+    //     BuildContext context,
+    //     Size size,
+    //     ZegoUIKitUser? user,
+    //     Map<String, dynamic> extraInfo,
+    //   ) {
+    //     return Container(color: Colors.transparent, height: 30, width: 30,);
+    //   },
+    // );
     return ZegoLiveAudioRoomSeatConfig(
-        // avatarBuilder: avatarBuilder,
+      // openIcon: Image.network('https://res.cloudinary.com/dsqpl191o/image/upload/public/645/33b/4dc/64533b4dca2ee309819173.jpg'),
+      closeWhenJoining: false,
+        avatarBuilder: avatarBuilder,
+        // backgroundBuilder: (context, size, user, extraInfo) {
+        //   return SizedBox(height: 30, width: 30,);
+        // },
         );
   }
 
@@ -230,84 +392,14 @@ class LivePageState extends State<LivePage> {
 
   ZegoLiveAudioRoomLayoutConfig getLayoutConfig() {
     final config = ZegoLiveAudioRoomLayoutConfig();
-    switch (widget.layoutMode) {
-      case LayoutMode.defaultLayout:
-        break;
-      case LayoutMode.full:
-        config.rowSpacing = 5;
-        config.rowConfigs = List.generate(
-          4,
-          (index) => ZegoLiveAudioRoomLayoutRowConfig(
-            count: 4,
-            alignment: ZegoLiveAudioRoomLayoutAlignment.spaceBetween,
-          ),
-        );
-        break;
-      case LayoutMode.horizontal:
-        config.rowSpacing = 5;
-        config.rowConfigs = [
-          ZegoLiveAudioRoomLayoutRowConfig(
-            count: 8,
-            alignment: ZegoLiveAudioRoomLayoutAlignment.spaceBetween,
-          ),
-        ];
-        break;
-      case LayoutMode.vertical:
-        config.rowSpacing = 5;
-        config.rowConfigs = List.generate(
-          8,
-          (index) => ZegoLiveAudioRoomLayoutRowConfig(
-            count: 1,
-            alignment: ZegoLiveAudioRoomLayoutAlignment.spaceBetween,
-          ),
-        );
-        break;
-      case LayoutMode.hostTopCenter:
-        config.rowConfigs = [
-          ZegoLiveAudioRoomLayoutRowConfig(
-            count: 1,
-            alignment: ZegoLiveAudioRoomLayoutAlignment.center,
-          ),
-          ZegoLiveAudioRoomLayoutRowConfig(
-            count: 3,
-            alignment: ZegoLiveAudioRoomLayoutAlignment.spaceBetween,
-          ),
-          ZegoLiveAudioRoomLayoutRowConfig(
-            count: 3,
-            alignment: ZegoLiveAudioRoomLayoutAlignment.spaceBetween,
-          ),
-          ZegoLiveAudioRoomLayoutRowConfig(
-            count: 2,
-            alignment: ZegoLiveAudioRoomLayoutAlignment.spaceEvenly,
-          ),
-        ];
-        break;
-      case LayoutMode.hostCenter:
-        config.rowSpacing = 5;
-        config.rowConfigs = [
-          ZegoLiveAudioRoomLayoutRowConfig(
-            count: 3,
-            alignment: ZegoLiveAudioRoomLayoutAlignment.spaceBetween,
-          ),
-          ZegoLiveAudioRoomLayoutRowConfig(
-            count: 3,
-            alignment: ZegoLiveAudioRoomLayoutAlignment.spaceBetween,
-          ),
-          ZegoLiveAudioRoomLayoutRowConfig(
-            count: 3,
-            alignment: ZegoLiveAudioRoomLayoutAlignment.spaceBetween,
-          ),
-        ];
-        break;
-      case LayoutMode.fourPeoples:
-        config.rowConfigs = [
-          ZegoLiveAudioRoomLayoutRowConfig(
-            count: 4,
-            alignment: ZegoLiveAudioRoomLayoutAlignment.spaceBetween,
-          ),
-        ];
-        break;
-    }
+    config.rowSpacing = 0;
+    config.rowConfigs = [
+      ZegoLiveAudioRoomLayoutRowConfig(
+        count: 5,
+        alignment: ZegoLiveAudioRoomLayoutAlignment.spaceAround,
+      ),
+    ];
+
     return config;
   }
 
@@ -389,7 +481,7 @@ class LivePageState extends State<LivePage> {
               itemCount: listMenu.length,
               itemBuilder: (BuildContext context, int index) {
                 return SizedBox(
-                  height: 60,
+                  height: 30,
                   child: Center(child: listMenu[index]),
                 );
               },
